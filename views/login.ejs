@@ -1,0 +1,124 @@
+<%- include('partials/head', { title: 'Đăng nhập' }) %>
+<body class="min-h-screen">
+  <div class="mesh" aria-hidden="true"><span class="b1"></span><span class="b2"></span><span class="b3"></span><span class="b4"></span></div>
+
+  <button type="button" data-theme-toggle class="fixed top-4 right-4 z-20 h-10 w-10 rounded-xl grid place-items-center text-white/80 hover:text-white" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);backdrop-filter:blur(10px)" aria-label="Chuyển giao diện">
+    <i data-lucide="moon" class="h-[1.1rem] w-[1.1rem] dark:hidden"></i>
+    <i data-lucide="sun" class="h-[1.1rem] w-[1.1rem] hidden dark:block"></i>
+  </button>
+
+  <main class="relative z-10 min-h-screen grid place-items-center px-4 py-10">
+    <div class="w-full max-w-md fade-up">
+      <div class="text-center mb-7">
+        <span class="inline-grid place-items-center h-16 w-16 rounded-3xl text-white mb-4" style="background:linear-gradient(135deg,#6366f1,#8b5cf6 60%,#06b6d4);box-shadow:0 20px 40px -12px rgba(99,102,241,.9)">
+          <i data-lucide="graduation-cap" class="h-8 w-8"></i>
+        </span>
+        <h1 class="text-3xl font-extrabold text-white tracking-tight">Smart Campus</h1>
+        <p class="mt-1 text-sm text-white/60">Đăng nhập vào trang quản trị</p>
+      </div>
+
+      <form id="login-form" class="glass-login rounded-3xl p-7 sm:p-8 space-y-5" novalidate>
+        <div>
+          <label for="email" class="block text-xs font-bold text-white/70 mb-1.5 tracking-wide">EMAIL</label>
+          <div class="relative">
+            <i data-lucide="mail" class="absolute left-4 top-1/2 -translate-y-1/2 h-[1.05rem] w-[1.05rem] text-white/50"></i>
+            <input id="email" name="email" type="email" autocomplete="username" placeholder="admin@smartcampus.edu.vn" class="input-dark" />
+          </div>
+          <p id="email-err" class="text-xs text-rose-300 mt-1.5 min-h-[1em]"></p>
+        </div>
+
+        <div>
+          <label for="password" class="block text-xs font-bold text-white/70 mb-1.5 tracking-wide">MẬT KHẨU</label>
+          <div class="relative">
+            <i data-lucide="lock" class="absolute left-4 top-1/2 -translate-y-1/2 h-[1.05rem] w-[1.05rem] text-white/50"></i>
+            <input id="password" name="password" type="password" autocomplete="current-password" placeholder="••••••••" class="input-dark" style="padding-right:3rem" />
+            <button type="button" id="toggle-pw" class="absolute right-3 top-1/2 -translate-y-1/2 h-8 w-8 grid place-items-center rounded-lg text-white/60 hover:text-white" aria-label="Hiện / ẩn mật khẩu">
+              <i data-lucide="eye" id="eye-on" class="h-[1.05rem] w-[1.05rem]"></i>
+              <i data-lucide="eye-off" id="eye-off" class="h-[1.05rem] w-[1.05rem] hidden"></i>
+            </button>
+          </div>
+          <p id="password-err" class="text-xs text-rose-300 mt-1.5 min-h-[1em]"></p>
+        </div>
+
+        <button id="submit-btn" type="submit" class="btn btn-primary w-full !py-3.5 !text-[0.95rem]">
+          <span id="btn-text">Đăng nhập</span>
+          <i data-lucide="arrow-right" class="h-4 w-4" id="btn-arrow"></i>
+        </button>
+      </form>
+
+      <p class="text-center text-xs text-white/40 mt-6">© <%= new Date().getFullYear() %> Smart Campus · Khu vực dành cho quản trị viên</p>
+    </div>
+  </main>
+
+  <script src="/js/main.js"></script>
+  <script>
+    (function () {
+      var form = document.getElementById('login-form');
+      var email = document.getElementById('email');
+      var pw = document.getElementById('password');
+      var emailErr = document.getElementById('email-err');
+      var pwErr = document.getElementById('password-err');
+      var btn = document.getElementById('submit-btn');
+      var btnText = document.getElementById('btn-text');
+      var EMAIL_RE = /^\S+@\S+\.\S+$/;
+
+      function mark(input, errEl, msg) {
+        errEl.textContent = msg || '';
+        input.classList.toggle('invalid', !!msg);
+      }
+      function checkEmail() {
+        var v = email.value.trim();
+        var msg = !v ? 'Vui lòng nhập email' : !EMAIL_RE.test(v) ? 'Email không đúng định dạng' : '';
+        mark(email, emailErr, msg);
+        return !msg;
+      }
+      function checkPw() {
+        var v = pw.value;
+        var msg = !v ? 'Vui lòng nhập mật khẩu' : v.length < 6 ? 'Mật khẩu tối thiểu 6 ký tự' : '';
+        mark(pw, pwErr, msg);
+        return !msg;
+      }
+
+      // Validate tức thì: bắt đầu báo lỗi sau khi rời ô, rồi cập nhật theo từng ký tự
+      var touched = { email: false, pw: false };
+      email.addEventListener('blur', function () { touched.email = true; checkEmail(); });
+      pw.addEventListener('blur', function () { touched.pw = true; checkPw(); });
+      email.addEventListener('input', function () { if (touched.email) checkEmail(); });
+      pw.addEventListener('input', function () { if (touched.pw) checkPw(); });
+
+      document.getElementById('toggle-pw').addEventListener('click', function () {
+        var show = pw.type === 'password';
+        pw.type = show ? 'text' : 'password';
+        document.getElementById('eye-on').classList.toggle('hidden', show);
+        document.getElementById('eye-off').classList.toggle('hidden', !show);
+      });
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        touched.email = touched.pw = true;
+        var okE = checkEmail();
+        var okP = checkPw();
+        if (!okE || !okP) {
+          SC.toast('error', 'Vui lòng kiểm tra lại thông tin đăng nhập');
+          (okE ? pw : email).focus();
+          return;
+        }
+
+        btn.disabled = true;
+        btnText.textContent = 'Đang đăng nhập...';
+        SC.api('/api/auth/login', { method: 'POST', body: { email: email.value.trim(), password: pw.value } })
+          .then(function (data) {
+            SC.toast('success', 'Đăng nhập thành công! Đang chuyển hướng...');
+            setTimeout(function () { window.location.href = data.redirect || '/dashboard'; }, 700);
+          })
+          .catch(function (err) {
+            SC.toast('error', err.message);
+            btn.disabled = false;
+            btnText.textContent = 'Đăng nhập';
+            pw.select();
+          });
+      });
+    })();
+  </script>
+</body>
+</html>

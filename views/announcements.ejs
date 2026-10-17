@@ -1,0 +1,251 @@
+<%- include('partials/head', { title: 'Quản lý bảng tin' }) %>
+<body>
+  <%- include('partials/sidebar', { active: 'announcements' }) %>
+  <div class="main-wrap">
+    <%- include('partials/navbar', { title: 'Quản lý bảng tin', subtitle: 'Soạn thảo, xem trước và đăng thông báo toàn trường' }) %>
+
+    <main class="py-5 space-y-5">
+      <!-- Trình soạn thảo + Xem trước -->
+      <section class="grid gap-4 xl:grid-cols-2 items-start">
+        <form id="form" class="glass rounded-3xl p-5 space-y-4 fade-up" novalidate>
+          <div class="flex items-center justify-between">
+            <h2 id="form-title" class="font-extrabold t-main">Soạn bài viết mới</h2>
+            <button type="button" id="cancel-edit" class="btn btn-ghost !py-1.5 !px-3 hidden"><i data-lucide="x" class="h-3.5 w-3.5"></i> Hủy sửa</button>
+          </div>
+          <input type="hidden" id="a-id" />
+          <div><label class="label" for="a-title">Tiêu đề *</label><input id="a-title" class="input" maxlength="200" placeholder="Thông báo lịch đăng ký học phần..." /></div>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label class="label" for="a-cat">Danh mục</label>
+              <select id="a-cat" class="input">
+                <option value="general">Thông báo chung</option><option value="academic">Học vụ</option>
+                <option value="event">Sự kiện</option><option value="urgent">Khẩn cấp</option>
+              </select>
+            </div>
+            <div>
+              <label class="label" for="a-status">Trạng thái</label>
+              <select id="a-status" class="input"><option value="published">Đăng ngay</option><option value="draft">Lưu nháp</option></select>
+            </div>
+          </div>
+          <div>
+            <label class="label">Nội dung *</label>
+            <div class="editor-toolbar" id="toolbar" role="toolbar" aria-label="Định dạng văn bản">
+              <button type="button" data-cmd="bold" title="In đậm"><i data-lucide="bold" class="h-4 w-4"></i></button>
+              <button type="button" data-cmd="italic" title="In nghiêng"><i data-lucide="italic" class="h-4 w-4"></i></button>
+              <button type="button" data-cmd="underline" title="Gạch chân"><i data-lucide="underline" class="h-4 w-4"></i></button>
+              <button type="button" data-cmd="formatBlock" data-val="h3" title="Tiêu đề"><i data-lucide="heading-3" class="h-4 w-4"></i></button>
+              <button type="button" data-cmd="insertUnorderedList" title="Danh sách chấm"><i data-lucide="list" class="h-4 w-4"></i></button>
+              <button type="button" data-cmd="insertOrderedList" title="Danh sách số"><i data-lucide="list-ordered" class="h-4 w-4"></i></button>
+              <button type="button" data-cmd="formatBlock" data-val="blockquote" title="Trích dẫn"><i data-lucide="quote" class="h-4 w-4"></i></button>
+              <button type="button" data-cmd="removeFormat" title="Xóa định dạng"><i data-lucide="eraser" class="h-4 w-4"></i></button>
+            </div>
+            <div id="a-content" class="editor prose-sc" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Nhập nội dung thông báo..."></div>
+          </div>
+          <label class="flex items-center gap-3 cursor-pointer select-none">
+            <span class="switch"><input type="checkbox" id="a-pin" /><span class="slider"></span></span>
+            <span class="text-sm font-semibold t-main">Ghim lên đầu bảng tin</span>
+          </label>
+          <p id="a-err" class="field-err"></p>
+          <button type="submit" id="a-submit" class="btn btn-primary w-full"><i data-lucide="send" class="h-4 w-4"></i> <span id="a-submit-text">Đăng bài viết</span></button>
+        </form>
+
+        <div class="glass rounded-3xl p-5 xl:sticky xl:top-24 fade-up" style="animation-delay:.08s">
+          <div class="flex items-center justify-between mb-3">
+            <p class="label !mb-0">XEM TRƯỚC BÀI VIẾT</p>
+            <span class="badge cat-general"><i data-lucide="smartphone" class="h-3.5 w-3.5"></i> Giao diện app</span>
+          </div>
+          <article class="rounded-2xl p-5" style="background:var(--input-bg);border:1px solid var(--border)">
+            <div class="flex flex-wrap items-center gap-2 mb-3">
+              <span id="pv-cat" class="badge cat-general">Thông báo chung</span>
+              <span id="pv-pin" class="badge cat-draft hidden"><i data-lucide="pin" class="h-3 w-3"></i> Đã ghim</span>
+              <span id="pv-draft" class="badge cat-draft hidden">Bản nháp</span>
+            </div>
+            <h3 id="pv-title" class="text-xl font-extrabold t-main leading-snug break-words"></h3>
+            <p class="text-xs t-muted mt-1.5"><%= locals.user ? locals.user.name : 'Ban quản trị' %> · <span id="pv-date"></span></p>
+            <div id="pv-body" class="prose-sc t-main mt-4 break-words"></div>
+          </article>
+        </div>
+      </section>
+
+      <!-- Danh sách -->
+      <section class="space-y-3 fade-up" style="animation-delay:.12s">
+        <div class="glass rounded-3xl p-4 grid gap-3 sm:grid-cols-3">
+          <div class="relative sm:col-span-1">
+            <i data-lucide="search" class="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 t-muted"></i>
+            <input id="l-search" type="search" class="input" style="padding-left:2.4rem" placeholder="Tìm theo tiêu đề..." />
+          </div>
+          <select id="l-cat" class="input">
+            <option value="">Tất cả danh mục</option><option value="general">Thông báo chung</option><option value="academic">Học vụ</option>
+            <option value="event">Sự kiện</option><option value="urgent">Khẩn cấp</option>
+          </select>
+          <select id="l-status" class="input"><option value="">Mọi trạng thái</option><option value="published">Đã đăng</option><option value="draft">Bản nháp</option></select>
+        </div>
+        <div id="list" class="grid gap-3 md:grid-cols-2 xl:grid-cols-3"></div>
+      </section>
+    </main>
+
+    <%- include('partials/footer') %>
+  </div>
+
+  <script>
+    (function () {
+      var CATS = { general: 'Thông báo chung', academic: 'Học vụ', event: 'Sự kiện', urgent: 'Khẩn cấp' };
+      var items = [];
+      var $ = function (id) { return document.getElementById(id); };
+      var editor = $('a-content');
+
+      /* ----- Thanh công cụ soạn thảo ----- */
+      $('toolbar').addEventListener('mousedown', function (e) { if (e.target.closest('button')) e.preventDefault(); });
+      $('toolbar').addEventListener('click', function (e) {
+        var b = e.target.closest('[data-cmd]');
+        if (!b) return;
+        editor.focus();
+        var val = b.dataset.val;
+        if (b.dataset.cmd === 'formatBlock') {
+          var cur = (document.queryCommandValue('formatBlock') || '').toLowerCase();
+          val = cur === val ? 'p' : val; // bấm lần nữa để bỏ định dạng
+        }
+        document.execCommand(b.dataset.cmd, false, val || null);
+        updatePreview();
+      });
+      // Dán dưới dạng văn bản thuần để không mang theo style lạ
+      editor.addEventListener('paste', function (e) {
+        e.preventDefault();
+        var text = (e.clipboardData || window.clipboardData).getData('text/plain');
+        document.execCommand('insertText', false, text);
+      });
+
+      /* ----- Xem trước ----- */
+      function updatePreview() {
+        var cat = $('a-cat').value;
+        $('pv-cat').className = 'badge cat-' + cat;
+        $('pv-cat').textContent = CATS[cat];
+        $('pv-pin').classList.toggle('hidden', !$('a-pin').checked);
+        $('pv-draft').classList.toggle('hidden', $('a-status').value !== 'draft');
+        var t = $('a-title').value.trim();
+        $('pv-title').textContent = t || 'Tiêu đề bài viết sẽ hiển thị ở đây';
+        $('pv-title').style.opacity = t ? 1 : 0.45;
+        $('pv-date').textContent = new Date().toLocaleDateString('vi-VN');
+        var html = SC.sanitizeHtml(editor.innerHTML);
+        $('pv-body').innerHTML = SC.stripHtml(html) ? html : '<p class="t-muted">Nội dung bài viết sẽ hiển thị ở đây...</p>';
+        SC.icons();
+      }
+      ['a-title', 'a-cat', 'a-status', 'a-pin'].forEach(function (id) {
+        $(id).addEventListener('input', updatePreview);
+        $(id).addEventListener('change', updatePreview);
+      });
+      editor.addEventListener('input', updatePreview);
+
+      function resetForm() {
+        $('form').reset();
+        editor.innerHTML = '';
+        $('a-id').value = '';
+        $('a-err').textContent = '';
+        $('form-title').textContent = 'Soạn bài viết mới';
+        $('a-submit-text').textContent = 'Đăng bài viết';
+        $('cancel-edit').classList.add('hidden');
+        updatePreview();
+      }
+
+      /* ----- Danh sách ----- */
+      function cardHtml(a) {
+        var excerpt = SC.stripHtml(a.content);
+        if (excerpt.length > 140) excerpt = excerpt.slice(0, 140) + '…';
+        return '<article class="glass hover-lift rounded-3xl p-5 flex flex-col">' +
+          '<div class="flex flex-wrap items-center gap-2 mb-2"><span class="badge cat-' + SC.esc(a.category) + '">' + SC.esc(CATS[a.category] || a.category) + '</span>' +
+            (a.pinned ? '<span class="badge cat-draft"><i data-lucide="pin" class="h-3 w-3"></i> Ghim</span>' : '') +
+            (a.status === 'draft' ? '<span class="badge cat-draft">Bản nháp</span>' : '') + '</div>' +
+          '<h3 class="font-extrabold t-main leading-snug break-words">' + SC.esc(a.title) + '</h3>' +
+          '<p class="text-sm t-muted mt-2 flex-1 break-words">' + SC.esc(excerpt) + '</p>' +
+          '<div class="flex items-center justify-between mt-4 pt-3 border-t divider">' +
+            '<span class="text-xs font-semibold t-muted">' + SC.esc(a.authorName || '') + ' · ' + SC.esc(new Date(a.createdAt).toLocaleDateString('vi-VN')) + '</span>' +
+            '<div class="flex gap-1">' +
+              '<button type="button" class="icon-btn" data-pin="' + a._id + '" title="' + (a.pinned ? 'Bỏ ghim' : 'Ghim') + '"><i data-lucide="' + (a.pinned ? 'pin-off' : 'pin') + '" class="h-4 w-4"></i></button>' +
+              '<button type="button" class="icon-btn" data-edit="' + a._id + '" title="Sửa"><i data-lucide="pencil" class="h-4 w-4"></i></button>' +
+              '<button type="button" class="icon-btn danger" data-del="' + a._id + '" title="Xóa"><i data-lucide="trash-2" class="h-4 w-4"></i></button>' +
+            '</div></div></article>';
+      }
+
+      var first = true;
+      function load() {
+        if (first) $('list').innerHTML = [1, 2, 3].map(function () { return '<div class="shimmer h-48 rounded-3xl"></div>'; }).join('');
+        var qs = new URLSearchParams({ search: $('l-search').value.trim(), category: $('l-cat').value, status: $('l-status').value });
+        return SC.api('/api/announcements?' + qs.toString()).then(function (d) {
+          first = false;
+          items = d.announcements;
+          $('list').innerHTML = items.length
+            ? items.map(cardHtml).join('')
+            : '<div class="glass rounded-3xl py-16 text-center md:col-span-2 xl:col-span-3"><i data-lucide="newspaper" class="h-10 w-10 mx-auto t-muted"></i><p class="mt-3 font-bold t-main">Chưa có bài viết nào</p><p class="text-sm t-muted">Hãy soạn bài viết đầu tiên ở phía trên.</p></div>';
+          SC.icons();
+        }).catch(function (err) { SC.toast('error', err.message); });
+      }
+
+      $('l-search').addEventListener('input', SC.debounce(load, 300));
+      $('l-cat').addEventListener('change', load);
+      $('l-status').addEventListener('change', load);
+
+      $('list').addEventListener('click', function (e) {
+        var ed = e.target.closest('[data-edit]');
+        var del = e.target.closest('[data-del]');
+        var pin = e.target.closest('[data-pin]');
+        var find = function (id) { return items.filter(function (x) { return x._id === id; })[0]; };
+
+        if (ed) {
+          var a = find(ed.dataset.edit);
+          if (!a) return;
+          $('a-id').value = a._id;
+          $('a-title').value = a.title;
+          $('a-cat').value = a.category;
+          $('a-status').value = a.status;
+          $('a-pin').checked = !!a.pinned;
+          editor.innerHTML = SC.sanitizeHtml(a.content);
+          $('form-title').textContent = 'Chỉnh sửa bài viết';
+          $('a-submit-text').textContent = 'Lưu thay đổi';
+          $('cancel-edit').classList.remove('hidden');
+          updatePreview();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else if (del) {
+          var item = find(del.dataset.del);
+          SC.confirm({ title: 'Xóa bài viết?', text: item ? '"' + item.title + '" sẽ bị xóa vĩnh viễn.' : '', confirmText: 'Xóa', danger: true }).then(function (ok) {
+            if (!ok) return;
+            SC.api('/api/announcements/' + del.dataset.del, { method: 'DELETE' })
+              .then(function () { SC.toast('success', 'Đã xóa bài viết'); if ($('a-id').value === del.dataset.del) resetForm(); load(); })
+              .catch(function (err) { SC.toast('error', err.message); });
+          });
+        } else if (pin) {
+          SC.api('/api/announcements/' + pin.dataset.pin + '/pin', { method: 'PATCH' })
+            .then(function (res) { SC.toast('success', res.message); load(); })
+            .catch(function (err) { SC.toast('error', err.message); });
+        }
+      });
+
+      $('cancel-edit').addEventListener('click', resetForm);
+
+      $('form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var title = $('a-title').value.trim();
+        var html = SC.sanitizeHtml(editor.innerHTML);
+        var err = $('a-err');
+        var msg = title.length < 5 ? 'Tiêu đề tối thiểu 5 ký tự' : SC.stripHtml(html).length < 10 ? 'Nội dung bài viết tối thiểu 10 ký tự' : '';
+        err.textContent = msg;
+        if (msg) { SC.toast('error', msg); return; }
+
+        var id = $('a-id').value;
+        var draft = $('a-status').value === 'draft';
+        var btn = $('a-submit');
+        btn.disabled = true;
+        SC.api(id ? '/api/announcements/' + id : '/api/announcements', {
+          method: id ? 'PUT' : 'POST',
+          body: { title: title, content: html, category: $('a-cat').value, status: $('a-status').value, pinned: $('a-pin').checked }
+        })
+          .then(function () { SC.toast('success', id ? 'Đã cập nhật bài viết' : draft ? 'Đã lưu bản nháp' : 'Đã đăng bài viết'); resetForm(); load(); })
+          .catch(function (er) { err.textContent = er.message; SC.toast('error', er.message); })
+          .finally(function () { btn.disabled = false; });
+      });
+
+      updatePreview();
+      load();
+    })();
+  </script>
+</body>
+</html>

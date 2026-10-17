@@ -1,0 +1,240 @@
+<%- include('partials/head', { title: 'Quản lý lịch học' }) %>
+<body>
+  <%- include('partials/sidebar', { active: 'schedules' }) %>
+  <div class="main-wrap">
+    <%- include('partials/navbar', { title: 'Quản lý lịch học', subtitle: 'Tạo và chỉnh sửa thời khóa biểu cho từng lớp' }) %>
+
+    <main class="py-5 grid gap-4 xl:grid-cols-12 items-start">
+      <!-- Form -->
+      <section class="xl:col-span-4 xl:sticky xl:top-24 space-y-4 fade-up">
+        <form id="form" class="glass rounded-3xl p-5 space-y-4" novalidate>
+          <div class="flex items-center justify-between">
+            <h2 id="form-title" class="font-extrabold t-main">Tạo lịch học mới</h2>
+            <button type="button" id="cancel-edit" class="btn btn-ghost !py-1.5 !px-3 hidden"><i data-lucide="x" class="h-3.5 w-3.5"></i> Hủy sửa</button>
+          </div>
+          <input type="hidden" id="f-id" />
+          <div class="grid gap-3 sm:grid-cols-3">
+            <div class="sm:col-span-2"><label class="label" for="f-subject">Môn học *</label><input id="f-subject" class="input" placeholder="Lập trình Web" /></div>
+            <div><label class="label" for="f-code">Mã môn</label><input id="f-code" class="input" placeholder="IT301" /></div>
+          </div>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div><label class="label" for="f-class">Lớp *</label><input id="f-class" class="input" list="dl-class" placeholder="K22-CNTT1" /></div>
+            <div><label class="label" for="f-room">Phòng học *</label><input id="f-room" class="input" placeholder="A2-301" /></div>
+          </div>
+          <div><label class="label" for="f-lecturer">Giảng viên</label><input id="f-lecturer" class="input" placeholder="ThS. Trần Minh Quân" /></div>
+          <div class="grid gap-3 grid-cols-3">
+            <div>
+              <label class="label" for="f-day">Thứ *</label>
+              <select id="f-day" class="input">
+                <option value="2">Thứ Hai</option><option value="3">Thứ Ba</option><option value="4">Thứ Tư</option>
+                <option value="5">Thứ Năm</option><option value="6">Thứ Sáu</option><option value="7">Thứ Bảy</option><option value="8">Chủ Nhật</option>
+              </select>
+            </div>
+            <div><label class="label" for="f-start">Bắt đầu *</label><input id="f-start" type="time" class="input" value="07:00" /></div>
+            <div><label class="label" for="f-end">Kết thúc *</label><input id="f-end" type="time" class="input" value="09:30" /></div>
+          </div>
+          <div><label class="label" for="f-note">Ghi chú</label><textarea id="f-note" rows="2" class="input" placeholder="Mang theo laptop..."></textarea></div>
+          <datalist id="dl-class"></datalist>
+          <p id="f-err" class="field-err"></p>
+          <button type="submit" id="f-submit" class="btn btn-primary w-full"><i data-lucide="calendar-plus" class="h-4 w-4"></i> <span id="f-submit-text">Tạo lịch học</span></button>
+        </form>
+
+        <!-- Xem trước -->
+        <div class="glass rounded-3xl p-5">
+          <p class="label">XEM TRƯỚC TRÊN ỨNG DỤNG</p>
+          <div id="preview"></div>
+        </div>
+      </section>
+
+      <!-- Danh sách -->
+      <section class="xl:col-span-8 space-y-4 fade-up" style="animation-delay:.08s">
+        <div class="glass rounded-3xl p-4 space-y-3">
+          <div class="grid gap-3 sm:grid-cols-3">
+            <div class="relative sm:col-span-2">
+              <i data-lucide="search" class="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 t-muted"></i>
+              <input id="s-search" type="search" class="input" style="padding-left:2.4rem" placeholder="Tìm môn học, mã môn, giảng viên, phòng..." />
+            </div>
+            <select id="s-class" class="input"><option value="">Tất cả lớp</option></select>
+          </div>
+          <div id="day-tabs" class="flex flex-wrap gap-2"></div>
+        </div>
+        <div id="list" class="space-y-6"></div>
+      </section>
+    </main>
+
+    <%- include('partials/footer') %>
+  </div>
+
+  <script>
+    (function () {
+      var DAYS = { 2: 'Thứ Hai', 3: 'Thứ Ba', 4: 'Thứ Tư', 5: 'Thứ Năm', 6: 'Thứ Sáu', 7: 'Thứ Bảy', 8: 'Chủ Nhật' };
+      var SHORT = { 0: 'Tất cả', 2: 'T2', 3: 'T3', 4: 'T4', 5: 'T5', 6: 'T6', 7: 'T7', 8: 'CN' };
+      var items = [];
+      var filter = { day: 0, className: '', search: '' };
+      var $ = function (id) { return document.getElementById(id); };
+      var TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+      /* ----- Thẻ lịch học (dùng cho cả preview và danh sách) ----- */
+      function card(s, actions) {
+        return '<div class="relative glass rounded-2xl p-4 pl-5 overflow-hidden hover-lift">' +
+          '<span class="absolute left-0 top-0 bottom-0 w-1.5" style="background:' + SC.accent(s.subject) + '"></span>' +
+          '<div class="flex items-start justify-between gap-2">' +
+            '<div class="min-w-0"><p class="font-extrabold t-main truncate">' + SC.esc(s.subject || 'Tên môn học') + '</p>' +
+            '<p class="text-xs t-muted">' + SC.esc(s.code || 'Mã môn') + ' · ' + SC.esc(s.className || 'Lớp') + '</p></div>' +
+            (actions ? '<div class="flex gap-1 shrink-0"><button type="button" class="icon-btn" data-edit="' + s._id + '" title="Sửa"><i data-lucide="pencil" class="h-4 w-4"></i></button>' +
+              '<button type="button" class="icon-btn danger" data-del="' + s._id + '" title="Xóa"><i data-lucide="trash-2" class="h-4 w-4"></i></button></div>' : '') +
+          '</div>' +
+          '<div class="mt-3 grid gap-1.5 text-sm">' +
+            '<p class="flex items-center gap-2 font-semibold t-main"><i data-lucide="clock" class="h-4 w-4 text-brand-500"></i>' + SC.esc(s.startTime || '--:--') + ' – ' + SC.esc(s.endTime || '--:--') + ' · ' + SC.esc(DAYS[s.dayOfWeek] || '') + '</p>' +
+            '<p class="flex items-center gap-2 t-muted"><i data-lucide="map-pin" class="h-4 w-4"></i>' + SC.esc(s.room || 'Phòng học') + '</p>' +
+            '<p class="flex items-center gap-2 t-muted"><i data-lucide="user" class="h-4 w-4"></i>' + SC.esc(s.lecturer || 'Chưa có giảng viên') + '</p>' +
+            (s.note ? '<p class="text-xs t-muted mt-1 italic">' + SC.esc(s.note) + '</p>' : '') +
+          '</div></div>';
+      }
+
+      function readForm() {
+        return {
+          subject: $('f-subject').value.trim(), code: $('f-code').value.trim(), className: $('f-class').value.trim(),
+          room: $('f-room').value.trim(), lecturer: $('f-lecturer').value.trim(), dayOfWeek: parseInt($('f-day').value, 10),
+          startTime: $('f-start').value, endTime: $('f-end').value, note: $('f-note').value.trim()
+        };
+      }
+      function updatePreview() {
+        var d = readForm();
+        d._id = '';
+        $('preview').innerHTML = card(d, false);
+        SC.icons();
+      }
+      ['f-subject', 'f-code', 'f-class', 'f-room', 'f-lecturer', 'f-day', 'f-start', 'f-end', 'f-note'].forEach(function (id) {
+        $(id).addEventListener('input', updatePreview);
+        $(id).addEventListener('change', updatePreview);
+      });
+
+      function resetForm() {
+        $('form').reset();
+        $('f-id').value = '';
+        $('f-err').textContent = '';
+        $('form-title').textContent = 'Tạo lịch học mới';
+        $('f-submit-text').textContent = 'Tạo lịch học';
+        $('cancel-edit').classList.add('hidden');
+        updatePreview();
+      }
+
+      /* ----- Danh sách ----- */
+      function renderTabs() {
+        $('day-tabs').innerHTML = [0, 2, 3, 4, 5, 6, 7, 8].map(function (d) {
+          var on = filter.day === d;
+          var count = d === 0 ? items.length : items.filter(function (s) { return s.dayOfWeek === d; }).length;
+          return '<button type="button" data-day="' + d + '" class="btn !py-1.5 !px-3.5 ' + (on ? 'btn-primary' : 'btn-ghost') + '">' + SHORT[d] + ' <span class="opacity-70 text-xs">' + count + '</span></button>';
+        }).join('');
+      }
+
+      function visible() {
+        var q = filter.search.toLowerCase();
+        return items.filter(function (s) {
+          if (filter.day && s.dayOfWeek !== filter.day) return false;
+          if (filter.className && s.className !== filter.className) return false;
+          if (q && [s.subject, s.code, s.lecturer, s.room].join(' ').toLowerCase().indexOf(q) === -1) return false;
+          return true;
+        });
+      }
+
+      function renderList() {
+        renderTabs();
+        var list = visible();
+        if (!list.length) {
+          $('list').innerHTML = '<div class="glass rounded-3xl py-16 text-center"><i data-lucide="calendar-x" class="h-10 w-10 mx-auto t-muted"></i><p class="mt-3 font-bold t-main">Chưa có lịch học phù hợp</p><p class="text-sm t-muted">Hãy tạo lịch học mới ở biểu mẫu bên cạnh.</p></div>';
+          SC.icons();
+          return;
+        }
+        var html = '';
+        [2, 3, 4, 5, 6, 7, 8].forEach(function (d) {
+          var rows = list.filter(function (s) { return s.dayOfWeek === d; }).sort(function (a, b) { return a.startTime < b.startTime ? -1 : 1; });
+          if (!rows.length) return;
+          html += '<div><div class="flex items-center gap-2 mb-3"><h3 class="font-extrabold t-main">' + DAYS[d] + '</h3><span class="badge cat-general">' + rows.length + ' buổi</span><span class="flex-1 border-t divider"></span></div>' +
+            '<div class="grid gap-3 sm:grid-cols-2">' + rows.map(function (s) { return card(s, true); }).join('') + '</div></div>';
+        });
+        $('list').innerHTML = html;
+        SC.icons();
+      }
+
+      var first = true;
+      function load() {
+        if (first) {
+          $('list').innerHTML = '<div class="grid gap-3 sm:grid-cols-2">' + [1, 2, 3, 4].map(function () { return '<div class="shimmer h-36 rounded-2xl"></div>'; }).join('') + '</div>';
+        }
+        return SC.api('/api/schedules').then(function (d) {
+          first = false;
+          items = d.schedules;
+          var sel = $('s-class'), cur = sel.value;
+          sel.innerHTML = '<option value="">Tất cả lớp</option>' + d.classes.map(function (c) { return '<option value="' + SC.esc(c) + '">' + SC.esc(c) + '</option>'; }).join('');
+          sel.value = d.classes.indexOf(cur) !== -1 ? cur : '';
+          filter.className = sel.value;
+          $('dl-class').innerHTML = d.classes.map(function (c) { return '<option value="' + SC.esc(c) + '">'; }).join('');
+          renderList();
+        }).catch(function (err) { SC.toast('error', err.message); });
+      }
+
+      $('day-tabs').addEventListener('click', function (e) {
+        var b = e.target.closest('[data-day]');
+        if (!b) return;
+        filter.day = parseInt(b.dataset.day, 10);
+        renderList();
+      });
+      $('s-class').addEventListener('change', function (e) { filter.className = e.target.value; renderList(); });
+      $('s-search').addEventListener('input', SC.debounce(function (e) { filter.search = e.target.value.trim(); renderList(); }, 200));
+
+      $('list').addEventListener('click', function (e) {
+        var ed = e.target.closest('[data-edit]');
+        var del = e.target.closest('[data-del]');
+        if (ed) {
+          var s = items.filter(function (x) { return x._id === ed.dataset.edit; })[0];
+          if (!s) return;
+          $('f-id').value = s._id;
+          $('f-subject').value = s.subject; $('f-code').value = s.code || ''; $('f-class').value = s.className;
+          $('f-room').value = s.room; $('f-lecturer').value = s.lecturer || ''; $('f-day').value = s.dayOfWeek;
+          $('f-start').value = s.startTime; $('f-end').value = s.endTime; $('f-note').value = s.note || '';
+          $('form-title').textContent = 'Chỉnh sửa lịch học';
+          $('f-submit-text').textContent = 'Lưu thay đổi';
+          $('cancel-edit').classList.remove('hidden');
+          updatePreview();
+          $('f-subject').scrollIntoView({ behavior: 'smooth', block: 'center' });
+          $('f-subject').focus({ preventScroll: true });
+        } else if (del) {
+          var item = items.filter(function (x) { return x._id === del.dataset.del; })[0];
+          SC.confirm({ title: 'Xóa lịch học?', text: item ? '"' + item.subject + '" (' + item.className + ') sẽ bị xóa khỏi thời khóa biểu.' : '', confirmText: 'Xóa', danger: true }).then(function (ok) {
+            if (!ok) return;
+            SC.api('/api/schedules/' + del.dataset.del, { method: 'DELETE' })
+              .then(function () { SC.toast('success', 'Đã xóa lịch học'); if ($('f-id').value === del.dataset.del) resetForm(); load(); })
+              .catch(function (err) { SC.toast('error', err.message); });
+          });
+        }
+      });
+
+      $('cancel-edit').addEventListener('click', resetForm);
+
+      $('form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var d = readForm();
+        var err = $('f-err');
+        var msg = !d.subject ? 'Vui lòng nhập tên môn học' : !d.className ? 'Vui lòng nhập lớp' : !d.room ? 'Vui lòng nhập phòng học'
+          : !TIME_RE.test(d.startTime) || !TIME_RE.test(d.endTime) ? 'Vui lòng chọn giờ bắt đầu và kết thúc'
+          : d.endTime <= d.startTime ? 'Giờ kết thúc phải sau giờ bắt đầu' : '';
+        err.textContent = msg;
+        if (msg) { SC.toast('error', msg); return; }
+
+        var id = $('f-id').value;
+        var btn = $('f-submit');
+        btn.disabled = true;
+        SC.api(id ? '/api/schedules/' + id : '/api/schedules', { method: id ? 'PUT' : 'POST', body: d })
+          .then(function (res) { SC.toast('success', id ? 'Đã cập nhật lịch học' : 'Đã tạo lịch học ' + res.schedule.subject); resetForm(); load(); })
+          .catch(function (er) { err.textContent = er.message; SC.toast('error', er.message); })
+          .finally(function () { btn.disabled = false; });
+      });
+
+      updatePreview();
+      load();
+    })();
+  </script>
+</body>
+</html>

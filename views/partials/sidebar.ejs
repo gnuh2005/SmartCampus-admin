@@ -1,0 +1,47 @@
+<%
+  const navItems = [
+    { key: 'dashboard', href: '/dashboard', icon: 'layout-dashboard', label: 'Tổng quan' },
+    { key: 'users', href: '/users', icon: 'users', label: 'Sinh viên' },
+    { key: 'schedules', href: '/schedules', icon: 'calendar-days', label: 'Lịch học' },
+    { key: 'announcements', href: '/announcements', icon: 'megaphone', label: 'Bảng tin' }
+  ];
+  const activeKey = locals.active || '';
+  const adminName = (locals.user && locals.user.name) || 'Admin';
+  const adminEmail = (locals.user && locals.user.email) || '';
+  const initial = adminName.trim().charAt(0).toUpperCase();
+%>
+<div id="sidebar-overlay" class="sidebar-overlay"></div>
+<aside id="sidebar" class="sidebar glass" aria-label="Điều hướng chính">
+  <a href="/dashboard" class="brand flex items-center gap-3 px-2 py-2 mb-6">
+    <span class="h-10 w-10 rounded-2xl grid place-items-center text-white shrink-0" style="background:linear-gradient(135deg,#6366f1,#8b5cf6 60%,#06b6d4);box-shadow:0 10px 24px -10px rgba(99,102,241,.9)">
+      <i data-lucide="graduation-cap" class="h-5 w-5"></i>
+    </span>
+    <span class="brand-text leading-tight">
+      <span class="block font-extrabold text-[1.02rem] t-main">Smart Campus</span>
+      <span class="block text-[0.7rem] font-semibold t-muted tracking-wider uppercase">Admin Console</span>
+    </span>
+  </a>
+
+  <p class="nav-label px-3 mb-2 text-[0.68rem] font-bold uppercase tracking-widest t-muted">Menu</p>
+  <nav class="flex flex-col gap-1.5">
+    <% navItems.forEach(function (item) { %>
+      <a href="<%= item.href %>" title="<%= item.label %>" class="nav-item <%= activeKey === item.key ? 'active' : '' %>" <%- activeKey === item.key ? 'aria-current="page"' : '' %>>
+        <i data-lucide="<%= item.icon %>" class="h-[1.15rem] w-[1.15rem] shrink-0"></i>
+        <span class="nav-label"><%= item.label %></span>
+      </a>
+    <% }) %>
+  </nav>
+
+  <div class="mt-auto pt-4 border-t divider">
+    <div class="user-card flex items-center gap-3 px-2 py-2 mb-2">
+      <span class="h-10 w-10 rounded-full grid place-items-center text-white font-bold shrink-0" style="background:linear-gradient(135deg,#10b981,#06b6d4)"><%= initial %></span>
+      <span class="user-meta min-w-0 leading-tight">
+        <span class="block text-sm font-bold truncate t-main"><%= adminName %></span>
+        <span class="block text-xs truncate t-muted"><%= adminEmail %></span>
+      </span>
+    </div>
+    <button type="button" data-logout class="logout-btn btn btn-ghost w-full" title="Đăng xuất">
+      <i data-lucide="log-out" class="h-4 w-4"></i><span class="nav-label">Đăng xuất</span>
+    </button>
+  </div>
+</aside>

@@ -1,0 +1,25 @@
+<%
+  const navAdminName = (locals.user && locals.user.name) || 'Admin';
+%>
+<header class="glass sticky top-3 z-40 mt-3 rounded-2xl px-4 py-3 flex items-center gap-3">
+  <button type="button" data-sidebar-toggle class="icon-btn bordered" aria-label="Thu gọn / mở rộng thanh bên" title="Thu gọn / mở rộng">
+    <i data-lucide="panel-left" class="h-[1.1rem] w-[1.1rem]"></i>
+  </button>
+  <div class="min-w-0">
+    <h1 class="text-lg font-extrabold leading-tight truncate t-main"><%= locals.title || '' %></h1>
+    <% if (locals.subtitle) { %><p class="text-xs t-muted truncate"><%= locals.subtitle %></p><% } %>
+  </div>
+  <div class="ml-auto flex items-center gap-2">
+    <span class="hidden sm:inline-flex items-center gap-2 text-xs font-semibold t-muted px-3 py-1.5 rounded-full" style="background:var(--input-bg);border:1px solid var(--border)">
+      <span class="h-2 w-2 rounded-full bg-emerald-500 pulse-dot"></span> Hệ thống hoạt động
+    </span>
+    <button type="button" data-theme-toggle class="icon-btn bordered" aria-label="Chuyển giao diện Sáng / Tối" title="Chuyển giao diện Sáng / Tối">
+      <i data-lucide="moon" class="h-[1.1rem] w-[1.1rem] dark:hidden"></i>
+      <i data-lucide="sun" class="h-[1.1rem] w-[1.1rem] hidden dark:block"></i>
+    </button>
+    <span class="hidden md:flex items-center gap-2 pl-2 ml-1 border-l divider">
+      <span class="h-9 w-9 rounded-full grid place-items-center text-white text-sm font-bold" style="background:linear-gradient(135deg,#10b981,#06b6d4)"><%= navAdminName.trim().charAt(0).toUpperCase() %></span>
+      <span class="text-sm font-bold t-main max-w-[9rem] truncate"><%= navAdminName %></span>
+    </span>
+  </div>
+</header>
