@@ -21,6 +21,7 @@ const userSchema = new mongoose.Schema(
     phone: { type: String, trim: true, default: '' },
     status: { type: String, enum: ['active', 'blocked'], default: 'active' },
     lastLogin: { type: Date },
+    lastSeen: { type: Date },
   },
   { timestamps: true, autoIndex: false }
 );

@@ -110,6 +110,13 @@
       var tbody = document.getElementById('tbody');
       var EMAIL_RE = /^\S+@\S+\.\S+$/;
       var firstLoad = true;
+            function lastActiveText(u) {
+        var seen = u.lastSeen ? new Date(u.lastSeen).getTime() : 0;
+        if (seen && Date.now() - seen < 90000) return 'Vừa xong';
+        var login = u.lastLogin ? new Date(u.lastLogin).getTime() : 0;
+        var latest = Math.max(seen, login);
+        return SC.timeAgo(latest ? new Date(latest).toISOString() : null);
+      }
 
       function badgeHtml(status) {
         return status === 'blocked'
